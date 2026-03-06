@@ -42,18 +42,53 @@ class TranslateViewModel : ViewModel() {
     )
 
     private var modelReady = false
+    private var modelDownloading = false
 
     init {
-        downloadModelIfNeeded()
+        ensureModelDownloaded()
     }
 
-    /** 下载离线翻译模型（仅首次，约 30 MB） */
-    private fun downloadModelIfNeeded() {
-        val conditions = DownloadConditions.Builder().build()
+    /** 确保翻译模型已下载（首次约 30 MB，需联网） */
+    private fun ensureModelDownloaded() {
+        if (modelDownloading) return
+
+        modelDownloading = true
+        val conditions = DownloadConditions.Builder()
+            .requireWifi() // 使用WiFi下载（可选）
+            .build()
+
         translator.downloadModelIfNeeded(conditions)
-            .addOnSuccessListener { modelReady = true }
-            .addOnFailureListener { /* 可离线使用，仅提示 */ }
+            .addOnSuccessListener {
+                modelReady = true
+                modelDownloading = false
+            }
+            .addOnFailureListener { e ->
+                modelDownloading = false
+                // 下载失败时，下次翻译会重试
+            }
     }
+
+    /** 翻译前检查并下载模型 */
+    private suspend fun ensureModelReady(): Boolean =
+        suspendCancellableCoroutine { cont ->
+            if (modelReady) {
+                cont.resume(true)
+                return@suspendCancellableCoroutine
+            }
+
+            // 强制下载模型
+            val conditions = DownloadConditions.Builder().build()
+            translator.downloadModelIfNeeded(conditions)
+                .addOnSuccessListener {
+                    modelReady = true
+                    cont.resume(true)
+                }
+                .addOnFailureListener { e ->
+                    cont.resumeWithException(
+                        Exception("模型下载失败（约30MB）\n请确保：\n1. 已连接网络\n2. 有足够存储空间\n3. Google服务可用\n\n错误: ${e.message}")
+                    )
+                }
+        }
 
     // ─────────────────────────────────────────────
     // 拍照路径：Bitmap → OCR → 翻译
@@ -116,18 +151,27 @@ class TranslateViewModel : ViewModel() {
                 }
         }
 
-    private suspend fun translateText(text: String): String =
-        suspendCancellableCoroutine { cont ->
+    private suspend fun translateText(text: String): String {
+        // 翻译前确保模型已下载
+        try {
+            ensureModelReady()
+        } catch (e: Exception) {
+            throw e
+        }
+
+        // 执行翻译
+        return suspendCancellableCoroutine { cont ->
             translator.translate(text)
                 .addOnSuccessListener { translated ->
                     cont.resume(translated)
                 }
                 .addOnFailureListener { e ->
                     cont.resumeWithException(
-                        Exception("翻译失败，请检查网络（首次需下载模型）：${e.message}")
+                        Exception("翻译失败：${e.message}")
                     )
                 }
         }
+    }
 
     override fun onCleared() {
         super.onCleared()
