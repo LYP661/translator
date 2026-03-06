@@ -23,8 +23,9 @@ class MainActivity : AppCompatActivity() {
 
         binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.nav_camera -> { switchFragment(CameraFragment()); true }
-                R.id.nav_text   -> { switchFragment(TextInputFragment()); true }
+                R.id.nav_camera  -> { switchFragment(CameraFragment()); true }
+                R.id.nav_text    -> { switchFragment(TextInputFragment()); true }
+                R.id.nav_history -> { switchFragment(HistoryFragment()); true }
                 else -> false
             }
         }
