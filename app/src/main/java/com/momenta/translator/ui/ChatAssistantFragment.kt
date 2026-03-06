@@ -20,6 +20,7 @@ class ChatAssistantFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var chatAdapter: ChatAdapter
+    private val pendingRunnables = mutableListOf<Runnable>()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -101,24 +102,35 @@ class ChatAssistantFragment : Fragment() {
         }
 
         // 延迟显示助手回复（模拟思考）
-        binding.root.postDelayed({
-            val answer = FAQHelper.getAnswer(message)
-            val assistantMessage = ChatMessage(content = answer, isUser = false)
-            chatAdapter.addMessage(assistantMessage)
-            scrollToBottom()
-        }, 500)
+        val replyRunnable = Runnable {
+            if (_binding != null) {
+                val answer = FAQHelper.getAnswer(message)
+                val assistantMessage = ChatMessage(content = answer, isUser = false)
+                chatAdapter.addMessage(assistantMessage)
+                scrollToBottom()
+            }
+        }
+        pendingRunnables.add(replyRunnable)
+        binding.root.postDelayed(replyRunnable, 500)
     }
 
     private fun scrollToBottom() {
-        binding.rvChatMessages.postDelayed({
-            if (chatAdapter.itemCount > 0) {
+        val scrollRunnable = Runnable {
+            if (_binding != null && chatAdapter.itemCount > 0) {
                 binding.rvChatMessages.smoothScrollToPosition(chatAdapter.itemCount - 1)
             }
-        }, 100)
+        }
+        pendingRunnables.add(scrollRunnable)
+        binding.rvChatMessages.postDelayed(scrollRunnable, 100)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+
+        // 清理所有待执行的回调，防止崩溃和内存泄漏
+        pendingRunnables.forEach { binding.root.removeCallbacks(it) }
+        pendingRunnables.clear()
+
         _binding = null
     }
 }

@@ -205,20 +205,22 @@ class CameraFragment : Fragment() {
             }
         } else {
             // Android 8.0 以下：使用采样加载
+            // 第一次：读取图片尺寸
             val inputStream = requireContext().contentResolver.openInputStream(uri)
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
             inputStream?.use { stream ->
-                val options = BitmapFactory.Options().apply {
-                    inJustDecodeBounds = true
-                }
                 BitmapFactory.decodeStream(stream, null, options)
+            } ?: throw Exception("无法打开图片")
 
-                stream.close()
+            // 第二次：采样加载图片
+            val newStream = requireContext().contentResolver.openInputStream(uri)
+            options.inSampleSize = calculateInSampleSize(options, 2048, 2048)
+            options.inJustDecodeBounds = false
 
-                val newStream = requireContext().contentResolver.openInputStream(uri)
-                options.inSampleSize = calculateInSampleSize(options, 2048, 2048)
-                options.inJustDecodeBounds = false
-
-                BitmapFactory.decodeStream(newStream, null, options) ?: throw Exception("无法加载图片")
+            newStream?.use { stream ->
+                BitmapFactory.decodeStream(stream, null, options) ?: throw Exception("无法加载图片")
             } ?: throw Exception("无法打开图片")
         }
     }

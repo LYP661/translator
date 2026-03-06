@@ -19,6 +19,7 @@ class TextInputFragment : Fragment() {
     private val binding get() = _binding!!
     private val viewModel: TranslateViewModel by activityViewModels()
     private var ttsHelper: TTSHelper? = null
+    private val pendingRunnables = mutableListOf<Runnable>()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -56,7 +57,10 @@ class TextInputFragment : Fragment() {
                     .getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText("translated", text))
                 binding.btnCopy.text = "✓ 已复制"
-                binding.btnCopy.postDelayed({ binding.btnCopy.text = "复制" }, 1500)
+
+                val resetRunnable = Runnable { _binding?.btnCopy?.text = "复制" }
+                pendingRunnables.add(resetRunnable)
+                binding.btnCopy.postDelayed(resetRunnable, 1500)
             }
         }
 
@@ -138,6 +142,11 @@ class TextInputFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+
+        // 清理所有待执行的回调，防止崩溃
+        pendingRunnables.forEach { binding.btnCopy.removeCallbacks(it) }
+        pendingRunnables.clear()
+
         ttsHelper?.shutdown()
         ttsHelper = null
         _binding = null

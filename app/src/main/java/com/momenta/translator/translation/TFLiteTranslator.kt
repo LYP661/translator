@@ -107,11 +107,12 @@ class TFLiteTranslator(private val context: Context) {
     @Suppress("unused")
     private fun loadModelFile(modelPath: String): MappedByteBuffer {
         val fileDescriptor = context.assets.openFd(modelPath)
-        val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
-        val fileChannel = inputStream.channel
-        val startOffset = fileDescriptor.startOffset
-        val declaredLength = fileDescriptor.declaredLength
-        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
+        return FileInputStream(fileDescriptor.fileDescriptor).use { inputStream ->
+            val fileChannel = inputStream.channel
+            val startOffset = fileDescriptor.startOffset
+            val declaredLength = fileDescriptor.declaredLength
+            fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
+        }
     }
 
     /**
