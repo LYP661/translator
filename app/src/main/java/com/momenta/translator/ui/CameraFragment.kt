@@ -1,6 +1,8 @@
 package com.momenta.translator.ui
 
 import android.Manifest
+import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -18,6 +20,8 @@ import androidx.fragment.app.activityViewModels
 import com.momenta.translator.databinding.FragmentCameraBinding
 import com.momenta.translator.viewmodel.TranslateState
 import com.momenta.translator.viewmodel.TranslateViewModel
+import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -44,9 +48,24 @@ class CameraFragment : Fragment() {
         uri?.let {
             try {
                 val bitmap = uriToBitmap(it)
-                viewModel.recognizeAndTranslate(bitmap)
+                // 保存到临时文件，然后进入裁剪页面
+                val tempFile = saveBitmapToTempFile(bitmap)
+                startCropActivity(tempFile.absolutePath)
             } catch (e: Exception) {
                 showError("读取图片失败: ${e.message}")
+            }
+        }
+    }
+
+    // ─── 图片裁剪结果 ───
+    private val cropImageResult = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val croppedImagePath = result.data?.getStringExtra(CropImageActivity.EXTRA_CROPPED_IMAGE_PATH)
+            if (croppedImagePath != null) {
+                val bitmap = BitmapFactory.decodeFile(croppedImagePath)
+                viewModel.recognizeAndTranslate(bitmap)
             }
         }
     }
@@ -120,7 +139,9 @@ class CameraFragment : Fragment() {
                     val bitmap = imageProxyToBitmap(image)
                     image.close()
                     requireActivity().runOnUiThread {
-                        viewModel.recognizeAndTranslate(bitmap)
+                        // 保存到临时文件，然后进入裁剪页面
+                        val tempFile = saveBitmapToTempFile(bitmap)
+                        startCropActivity(tempFile.absolutePath)
                     }
                 }
 
@@ -216,6 +237,23 @@ class CameraFragment : Fragment() {
                 PackageManager.PERMISSION_GRANTED
 
     private fun requestPermission() = permissionLauncher.launch(Manifest.permission.CAMERA)
+
+    // ─── 保存Bitmap到临时文件 ───
+    private fun saveBitmapToTempFile(bitmap: Bitmap): File {
+        val tempFile = File(requireContext().cacheDir, "photo_${System.currentTimeMillis()}.jpg")
+        FileOutputStream(tempFile).use { out ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+        }
+        return tempFile
+    }
+
+    // ─── 启动裁剪页面 ───
+    private fun startCropActivity(imagePath: String) {
+        val intent = Intent(requireContext(), CropImageActivity::class.java).apply {
+            putExtra(CropImageActivity.EXTRA_IMAGE_PATH, imagePath)
+        }
+        cropImageResult.launch(intent)
+    }
 
     // ─── 分享翻译 ───
     private fun shareTranslation(original: String, translated: String) {
