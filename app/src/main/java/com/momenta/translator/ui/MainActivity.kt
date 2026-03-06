@@ -16,15 +16,14 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 默认展示拍照翻译
+        // 默认展示首页
         if (savedInstanceState == null) {
-            switchFragment(CameraFragment())
+            switchFragment(HomeFragment())
         }
 
         binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.nav_camera  -> { switchFragment(CameraFragment()); true }
-                R.id.nav_text    -> { switchFragment(TextInputFragment()); true }
+                R.id.nav_home    -> { switchFragment(HomeFragment()); true }
                 R.id.nav_history -> { switchFragment(HistoryFragment()); true }
                 else -> false
             }

@@ -5,8 +5,11 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- 网络权限（ML Kit 首次下载语言模型时需要） -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 录音权限（语音翻译） -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <application
         android:allowBackup="true"
