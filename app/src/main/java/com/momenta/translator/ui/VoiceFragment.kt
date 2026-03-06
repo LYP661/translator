@@ -144,11 +144,11 @@ class VoiceFragment : Fragment() {
 
         speechRecognizer?.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
-                binding.tvStatus.text = "请开始说话... 🎤"
+                _binding?.tvStatus?.text = "请开始说话... 🎤"
             }
 
             override fun onBeginningOfSpeech() {
-                binding.tvStatus.text = "正在听取... 🎤"
+                _binding?.tvStatus?.text = "正在听取... 🎤"
             }
 
             override fun onRmsChanged(rmsdB: Float) {}
@@ -156,12 +156,13 @@ class VoiceFragment : Fragment() {
             override fun onBufferReceived(buffer: ByteArray?) {}
 
             override fun onEndOfSpeech() {
-                binding.tvStatus.text = "识别中..."
+                _binding?.tvStatus?.text = "识别中..."
             }
 
             override fun onError(error: Int) {
                 isRecording = false
-                binding.btnRecord.setImageResource(android.R.drawable.ic_btn_speak_now)
+                // ⚠️ 安全访问 binding，防止 Fragment 销毁后崩溃
+                _binding?.btnRecord?.setImageResource(android.R.drawable.ic_btn_speak_now)
                 val errorMsg = when (error) {
                     SpeechRecognizer.ERROR_AUDIO -> "音频错误"
                     SpeechRecognizer.ERROR_CLIENT -> "客户端错误"
@@ -174,15 +175,18 @@ class VoiceFragment : Fragment() {
                     SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "没有检测到语音"
                     else -> "识别失败"
                 }
-                showError("小冷没听清楚：$errorMsg")
+                if (_binding != null) {
+                    showError("小冷没听清楚：$errorMsg")
+                }
             }
 
             override fun onResults(results: Bundle?) {
                 isRecording = false
-                binding.btnRecord.setImageResource(android.R.drawable.ic_btn_speak_now)
+                // ⚠️ 安全访问 binding，防止 Fragment 销毁后崩溃
+                _binding?.btnRecord?.setImageResource(android.R.drawable.ic_btn_speak_now)
 
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                if (!matches.isNullOrEmpty()) {
+                if (!matches.isNullOrEmpty() && _binding != null) {
                     val recognizedText = matches[0]
                     binding.tvRecognized.text = recognizedText
                     binding.tvRecognized.visibility = View.VISIBLE
@@ -190,14 +194,14 @@ class VoiceFragment : Fragment() {
 
                     // 调用翻译
                     viewModel.translateInput(recognizedText)
-                } else {
+                } else if (_binding != null) {
                     showError("没有识别到内容")
                 }
             }
 
             override fun onPartialResults(partialResults: Bundle?) {
                 val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                if (!matches.isNullOrEmpty()) {
+                if (!matches.isNullOrEmpty() && _binding != null) {
                     binding.tvRecognized.text = matches[0]
                     binding.tvRecognized.visibility = View.VISIBLE
                 }

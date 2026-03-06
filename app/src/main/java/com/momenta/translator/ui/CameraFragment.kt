@@ -128,6 +128,9 @@ class CameraFragment : Fragment() {
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
         cameraProviderFuture.addListener({
+            // ⚠️ 检查 Fragment 是否仍然存活
+            if (_binding == null) return@addListener
+
             val provider = cameraProviderFuture.get()
             val preview = Preview.Builder().build().also {
                 it.setSurfaceProvider(binding.previewView.surfaceProvider)
@@ -163,12 +166,17 @@ class CameraFragment : Fragment() {
             ContextCompat.getMainExecutor(requireContext()),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    // 文件已保存，直接进入裁剪
-                    startCropActivity(photoFile.absolutePath)
+                    // ⚠️ 检查 Fragment 是否仍然存活
+                    if (_binding != null) {
+                        startCropActivity(photoFile.absolutePath)
+                    }
                 }
 
                 override fun onError(exception: ImageCaptureException) {
-                    showError("拍照失败: ${exception.message}")
+                    // ⚠️ 检查 Fragment 是否仍然存活
+                    if (_binding != null) {
+                        showError("拍照失败: ${exception.message}")
+                    }
                 }
             }
         )
