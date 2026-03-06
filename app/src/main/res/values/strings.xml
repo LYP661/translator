@@ -1,4 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">拍译</string>
+    <string name="app_name">小冷翻译</string>
+
+    <!-- 品牌文案 -->
+    <string name="welcome_message">小冷在这 ❄️</string>
+    <string name="translating">小冷在翻译啦…</string>
+    <string name="translating_please_wait">小冷正在努力翻译中，请稍候～</string>
+    <string name="translate_success">翻译完成啦！✨</string>
+    <string name="ocr_processing">小冷正在识别图片文字…</string>
+
+    <!-- 功能标题 -->
+    <string name="camera_translate">拍照翻译</string>
+    <string name="text_translate">文字翻译</string>
+    <string name="history">翻译历史</string>
+
+    <!-- 按钮文本 -->
+    <string name="btn_translate">翻译成中文</string>
+    <string name="btn_clear">清空</string>
+    <string name="btn_copy">复制</string>
+    <string name="btn_share">分享</string>
+    <string name="btn_retry">重试</string>
+    <string name="btn_capture">拍照</string>
+    <string name="btn_gallery">相册</string>
+
+    <!-- 提示文案 -->
+    <string name="input_hint">输入要翻译的文字（支持英/日/法/德/西等语言）</string>
+    <string name="no_text_detected">未检测到文字，请重新拍照</string>
+    <string name="copy_success">已复制到剪贴板</string>
+    <string name="share_title">分享翻译</string>
+
+    <!-- 错误提示 -->
+    <string name="error_camera_permission">需要相机权限才能使用拍照功能哦</string>
+    <string name="error_translation_failed">翻译失败了，请检查网络连接</string>
+    <string name="error_model_download">模型下载失败，请确保网络连接正常</string>
 </resources>

@@ -59,9 +59,9 @@ class CameraFragment : Fragment() {
         viewModel.state.observe(viewLifecycleOwner) { state ->
             when (state) {
                 is TranslateState.Idle    -> showCameraView()
-                is TranslateState.Loading -> showLoading("识别中...")
-                is TranslateState.OcrDone -> showLoading("翻译中（OCR: ${state.text.take(30)}...）")
-                is TranslateState.Success -> showResult(state.original, state.translated)
+                is TranslateState.Loading -> showLoading("小冷在识别...")
+                is TranslateState.OcrDone -> showLoading("小冷在翻译啦...")
+                is TranslateState.Success -> showResult(state.original, state.translated, state.method)
                 is TranslateState.Error   -> showError(state.message)
             }
         }
@@ -139,14 +139,21 @@ class CameraFragment : Fragment() {
         binding.cardResult.visibility = View.GONE
     }
 
-    private fun showResult(original: String, translated: String) {
+    private fun showResult(original: String, translated: String, method: String = "") {
         binding.progressBar.visibility = View.GONE
         binding.tvStatus.visibility = View.GONE
         binding.previewView.visibility = View.GONE
         binding.btnCapture.visibility = View.GONE
         binding.cardResult.visibility = View.VISIBLE
         binding.tvOriginal.text = original
-        binding.tvTranslated.text = translated
+
+        // 显示翻译结果 + 方法提示
+        binding.tvTranslated.text = if (method.isNotEmpty()) {
+            "$translated\n\n💡 $method"
+        } else {
+            translated
+        }
+
         binding.btnRetry.visibility = View.VISIBLE
     }
 

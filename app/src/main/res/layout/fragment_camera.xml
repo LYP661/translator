@@ -81,7 +81,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="识别文字"
+                    android:text="小冷看到了"
                     android:textSize="12sp"
                     android:textColor="#888"
                     android:layout_marginBottom="4dp" />
@@ -107,7 +107,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="中文翻译"
+                    android:text="小冷的翻译 ❄️"
                     android:textSize="12sp"
                     android:textColor="#888"
                     android:layout_marginBottom="4dp" />

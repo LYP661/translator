@@ -70,7 +70,13 @@ class TextInputFragment : Fragment() {
                     binding.cardResult.visibility = View.VISIBLE
                     binding.tvOriginalLabel.text = "原文"
                     binding.tvOriginal.text = state.original
-                    binding.tvTranslated.text = state.translated
+
+                    // 显示翻译结果 + 方法提示
+                    binding.tvTranslated.text = if (state.method.isNotEmpty()) {
+                        "${state.translated}\n\n💡 ${state.method}"
+                    } else {
+                        state.translated
+                    }
                 }
                 is TranslateState.Error -> {
                     binding.progressBar.visibility = View.GONE
