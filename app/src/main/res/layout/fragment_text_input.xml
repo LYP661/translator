@@ -68,13 +68,14 @@
         </LinearLayout>
 
         <!-- 进度条 -->
-        <LinearProgressIndicator
+        <ProgressBar
             android:id="@+id/progress_bar"
+            style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:visibility="gone"
-            android:layout_marginBottom="8dp"
-            app:trackCornerRadius="4dp" />
+            android:indeterminate="true"
+            android:layout_marginBottom="8dp" />
 
         <!-- 错误提示 -->
         <TextView
