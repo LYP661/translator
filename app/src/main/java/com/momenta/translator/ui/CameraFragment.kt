@@ -149,63 +149,29 @@ class CameraFragment : Fragment() {
     // ─── 拍照 ───
     private fun takePhoto() {
         val capture = imageCapture ?: return
+
+        // ✅ 直接保存到文件，避免 YUV 转 Bitmap 的内存问题
+        val photoFile = File(
+            requireContext().cacheDir,
+            "photo_${System.currentTimeMillis()}.jpg"
+        )
+
+        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+
         capture.takePicture(
-            cameraExecutor,
-            object : ImageCapture.OnImageCapturedCallback() {
-                override fun onCaptureSuccess(image: ImageProxy) {
-                    val bitmap = imageProxyToBitmap(image)
-                    image.close()
-                    requireActivity().runOnUiThread {
-                        try {
-                            // 保存到临时文件，然后进入裁剪页面
-                            val tempFile = saveBitmapToTempFile(bitmap)
-                            startCropActivity(tempFile.absolutePath)
-                        } catch (e: Exception) {
-                            showError("保存图片失败: ${e.message}")
-                        } finally {
-                            // ⚠️ 关键修复：释放 bitmap 内存
-                            bitmap.recycle()
-                        }
-                    }
+            outputOptions,
+            ContextCompat.getMainExecutor(requireContext()),
+            object : ImageCapture.OnImageSavedCallback {
+                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                    // 文件已保存，直接进入裁剪
+                    startCropActivity(photoFile.absolutePath)
                 }
 
                 override fun onError(exception: ImageCaptureException) {
-                    requireActivity().runOnUiThread {
-                        showError("拍照失败: ${exception.message}")
-                    }
+                    showError("拍照失败: ${exception.message}")
                 }
             }
         )
-    }
-
-    private fun imageProxyToBitmap(image: ImageProxy): Bitmap {
-        val buffer = image.planes[0].buffer
-        val bytes = ByteArray(buffer.remaining())
-        buffer.get(bytes)
-
-        // ⚠️ 关键修复：采样解码，避免 OOM
-        val options = BitmapFactory.Options().apply {
-            inJustDecodeBounds = true
-        }
-        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
-
-        // 计算采样率
-        options.inSampleSize = calculateInSampleSize(options, 2048, 2048)
-        options.inJustDecodeBounds = false
-
-        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
-
-        // 修正旋转
-        val rotation = image.imageInfo.rotationDegrees.toFloat()
-        if (rotation != 0f) {
-            val matrix = Matrix().apply { postRotate(rotation) }
-            val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-            if (rotated != bitmap) {
-                bitmap.recycle() // 释放原 bitmap
-            }
-            return rotated
-        }
-        return bitmap
     }
 
     // ─── 从相册选择 ───
