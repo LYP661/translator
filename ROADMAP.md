@@ -26,18 +26,18 @@
 
 ---
 
-## 🎯 v1.1 - 实用增强版（开发中）
+## 🎯 v1.1 - 实用增强版（✅ 已完成）
 
 ### ✅ 已完成功能
 
-- [x] **品牌升级 - "小冷翻译"**
+- [x] **品牌升级 - "小冷翻译"** ⭐⭐⭐⭐⭐
       实现时间：2026-03-06
       - 新增启动页面（SplashActivity）with 渐变背景和动画
       - 应用名称改为"小冷翻译"
       - 所有UI文案改用温馨友好的"小冷"风格
       - 错误提示人性化（如："小冷没看到文字呢，换个角度试试？"）
 
-- [x] **Plan C: 混合翻译方案**
+- [x] **Plan C: 混合翻译方案** ⭐⭐⭐⭐⭐
       实现时间：2026-03-06
       技术方案：
       - TFLiteTranslator: 预打包轻量模型（完全离线）
@@ -47,42 +47,43 @@
       - 用户体验：启动即可使用，无需等待下载
       - 显示翻译方法：在结果中标注"在线翻译"或"离线翻译"
 
-### 📋 计划功能
-- [ ] **从相册选择图片翻译**
-      优先级：⭐⭐⭐⭐⭐
-      工作量：1-2小时
-      实现方式：
-      ```kotlin
-      // 使用 Activity Result API
-      val pickImage = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-          uri?.let { viewModel.recognizeAndTranslate(it.toBitmap()) }
-      }
-      ```
+- [x] **从相册选择图片翻译** ⭐⭐⭐⭐⭐
+      实现时间：2026-03-06
+      - 使用 ActivityResultContracts.PickVisualMedia API
+      - 支持 Android P+ ImageDecoder 和旧版本 MediaStore
+      - 相册按钮（mini FAB）在拍照按钮旁边
+      - URI 转 Bitmap 后复用现有翻译流程
 
-- [ ] **分享翻译结果**
-      优先级：⭐⭐⭐⭐⭐
-      工作量：30分钟
-      实现方式：
-      ```kotlin
-      val shareIntent = Intent(Intent.ACTION_SEND).apply {
-          type = "text/plain"
-          putExtra(Intent.EXTRA_TEXT, "原文: $original\n译文: $translated")
-      }
-      startActivity(Intent.createChooser(shareIntent, "分享翻译"))
-      ```
+- [x] **分享翻译结果** ⭐⭐⭐⭐⭐
+      实现时间：2026-03-06
+      - 使用 Intent.ACTION_SEND 分享
+      - 分享内容：原文 + 翻译 + 来源标记
+      - Camera 和 TextInput 页面都支持分享
+      - 格式化分享文本（自动清除翻译方法提示）
 
-- [ ] **最近翻译记录**
-      优先级：⭐⭐⭐⭐
-      工作量：1-2小时
-      实现方式：SharedPreferences 存储最近5条
-      ```kotlin
-      data class RecentTranslation(
-          val original: String,
-          val translated: String,
-          val timestamp: Long
-      )
-      ```
+- [x] **最近翻译记录** ⭐⭐⭐⭐
+      实现时间：2026-03-06
+      - SharedPreferences 存储最近5条
+      - 新增"历史记录"标签页（底部导航）
+      - RecyclerView 卡片式展示
+      - 时间显示：刚刚/X分钟前/X小时前/X天前
+      - 支持清空历史
+      - 自动保存每次成功的翻译
 
+### 🎉 v1.1 总结
+
+**工作量**: 约 5-6 小时
+**收益**: 显著提升实用性和用户体验
+**技术亮点**:
+- 混合翻译架构（首创）
+- 温馨友好的品牌形象
+- 完整的翻译工作流（拍照/相册/输入 → 翻译 → 分享/保存）
+
+---
+
+## 📋 v1.2 - 进阶功能版（规划）
+
+### 计划功能
 - [ ] **多语言互译**
       优先级：⭐⭐⭐
       工作量：2-3小时
@@ -231,14 +232,21 @@
 
 ## 🎯 近期目标（下个版本）
 
-**推荐先实现这3个功能**（v1.1）：
+**v1.1 已完成** ✅：
 
-1. ✅ 从相册选择图片（5⭐）
-2. ✅ 分享翻译结果（5⭐）
-3. ✅ 最近翻译记录（4⭐）
+1. ✅ 品牌升级 - "小冷翻译"（5⭐）
+2. ✅ Plan C - 混合翻译方案（5⭐）
+3. ✅ 从相册选择图片（5⭐）
+4. ✅ 分享翻译结果（5⭐）
+5. ✅ 最近翻译记录（4⭐）
 
-**预计工作量**：3-5小时
-**收益**：显著提升实用性
+**实际工作量**：5-6小时
+**收益**：显著提升实用性和用户体验
+
+**v1.2 规划中**：
+- 多语言互译（英中日韩法德西俄）
+- 翻译历史数据库（Room）
+- 收藏功能
 
 ---
 
@@ -289,6 +297,6 @@ git push origin feature/gallery-pick
 
 ---
 
-**最后更新**: 2026-03-06 23:00
+**最后更新**: 2026-03-06 23:30
 **维护者**: LYP661
-**当前版本**: v1.1 (增强版 - 开发中)
+**当前版本**: v1.1 (增强版 - ✅ 已完成)
