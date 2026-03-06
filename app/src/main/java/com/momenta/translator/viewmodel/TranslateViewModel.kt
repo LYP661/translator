@@ -12,6 +12,7 @@ import com.google.mlkit.nl.translate.TranslatorOptions
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.momenta.translator.data.TranslationHistoryManager
 import com.momenta.translator.translation.HybridTranslator
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -51,6 +52,9 @@ class TranslateViewModel(application: Application) : AndroidViewModel(applicatio
         context = application.applicationContext,
         mlkitTranslator = mlkitTranslator
     )
+
+    // 翻译历史管理器
+    private val historyManager = TranslationHistoryManager(application.applicationContext)
 
     private var translatorReady = false
 
@@ -94,6 +98,10 @@ class TranslateViewModel(application: Application) : AndroidViewModel(applicatio
                 _state.value = TranslateState.OcrDone(text)
                 // 再翻译
                 val result = translateText(text)
+
+                // 保存到历史记录
+                historyManager.addTranslation(text, result.text)
+
                 _state.value = TranslateState.Success(
                     original = text,
                     translated = result.text,
@@ -121,6 +129,10 @@ class TranslateViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             try {
                 val result = translateText(text.trim())
+
+                // 保存到历史记录
+                historyManager.addTranslation(text.trim(), result.text)
+
                 _state.value = TranslateState.Success(
                     original = text.trim(),
                     translated = result.text,

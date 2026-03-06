@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- 时间戳 -->
+        <TextView
+            android:id="@+id/tv_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2分钟前"
+            android:textSize="11sp"
+            android:textColor="#999"
+            android:layout_marginBottom="8dp" />
+
+        <!-- 原文 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="原文"
+            android:textSize="11sp"
+            android:textColor="#888"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tv_original"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Hello World"
+            android:textSize="14sp"
+            android:textColor="#555"
+            android:layout_marginBottom="12dp"
+            android:maxLines="2"
+            android:ellipsize="end" />
+
+        <!-- 翻译 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="小冷的翻译 ❄️"
+            android:textSize="11sp"
+            android:textColor="#888"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tv_translated"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="你好，世界"
+            android:textSize="16sp"
+            android:textColor="#1565C0"
+            android:textStyle="bold"
+            android:maxLines="3"
+            android:ellipsize="end" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>
