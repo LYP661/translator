@@ -37,6 +37,20 @@ class CameraFragment : Fragment() {
         if (granted) startCamera() else showError("需要相机权限才能使用此功能")
     }
 
+    // ─── 相册图片选择 ───
+    private val pickImage = registerForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let {
+            try {
+                val bitmap = uriToBitmap(it)
+                viewModel.recognizeAndTranslate(bitmap)
+            } catch (e: Exception) {
+                showError("读取图片失败: ${e.message}")
+            }
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -51,6 +65,7 @@ class CameraFragment : Fragment() {
         if (hasCameraPermission()) startCamera() else requestPermission()
 
         binding.btnCapture.setOnClickListener { takePhoto() }
+        binding.btnGallery.setOnClickListener { pickFromGallery() }
         binding.btnRetry.setOnClickListener {
             viewModel.reset()
             showCameraView()
@@ -122,10 +137,35 @@ class CameraFragment : Fragment() {
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
+    // ─── 从相册选择 ───
+    private fun pickFromGallery() {
+        pickImage.launch(
+            androidx.activity.result.PickVisualMediaRequest(
+                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly
+            )
+        )
+    }
+
+    private fun uriToBitmap(uri: android.net.Uri): Bitmap {
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            val source = android.graphics.ImageDecoder.createSource(
+                requireContext().contentResolver,
+                uri
+            )
+            android.graphics.ImageDecoder.decodeBitmap(source)
+        } else {
+            @Suppress("DEPRECATION")
+            android.provider.MediaStore.Images.Media.getBitmap(
+                requireContext().contentResolver,
+                uri
+            )
+        }
+    }
+
     // ─── UI 状态切换 ───
     private fun showCameraView() {
         binding.previewView.visibility = View.VISIBLE
-        binding.btnCapture.visibility = View.VISIBLE
+        binding.buttonLayout.visibility = View.VISIBLE
         binding.cardResult.visibility = View.GONE
         binding.progressBar.visibility = View.GONE
         binding.tvStatus.visibility = View.GONE
@@ -135,7 +175,7 @@ class CameraFragment : Fragment() {
         binding.progressBar.visibility = View.VISIBLE
         binding.tvStatus.text = msg
         binding.tvStatus.visibility = View.VISIBLE
-        binding.btnCapture.visibility = View.GONE
+        binding.buttonLayout.visibility = View.GONE
         binding.cardResult.visibility = View.GONE
     }
 
@@ -143,7 +183,7 @@ class CameraFragment : Fragment() {
         binding.progressBar.visibility = View.GONE
         binding.tvStatus.visibility = View.GONE
         binding.previewView.visibility = View.GONE
-        binding.btnCapture.visibility = View.GONE
+        binding.buttonLayout.visibility = View.GONE
         binding.cardResult.visibility = View.VISIBLE
         binding.tvOriginal.text = original
 
