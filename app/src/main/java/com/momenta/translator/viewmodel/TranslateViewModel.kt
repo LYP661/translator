@@ -113,6 +113,9 @@ class TranslateViewModel(application: Application) : AndroidViewModel(applicatio
                 )
             } catch (e: Exception) {
                 _state.value = TranslateState.Error(e.message ?: "小冷遇到点问题了")
+            } finally {
+                // ⚠️ CRITICAL: 无论成功或失败，必须释放 bitmap 内存！
+                bitmap.recycle()
             }
         }
     }
