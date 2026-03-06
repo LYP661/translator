@@ -152,6 +152,11 @@ class TranslateViewModel(application: Application) : AndroidViewModel(applicatio
         _state.value = TranslateState.Idle
     }
 
+    /** 清空翻译历史 */
+    fun clearHistory() {
+        historyManager.clearHistory()
+    }
+
     // ─────────────────────────────────────────────
     // 内部：协程包装 ML Kit 回调
     // ─────────────────────────────────────────────

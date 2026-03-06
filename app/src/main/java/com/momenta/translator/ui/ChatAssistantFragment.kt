@@ -56,9 +56,9 @@ class ChatAssistantFragment : Fragment() {
                 setOnClickListener {
                     sendMessage(question)
                 }
-                chipBackgroundColor = resources.getColorStateList(R.color.white, null)
+                setChipBackgroundColorResource(android.R.color.white)
                 chipStrokeWidth = 2f
-                chipStrokeColor = resources.getColorStateList(R.color.design_default_color_primary, null)
+                setChipStrokeColorResource(android.R.color.holo_blue_light)
             }
             binding.quickQuestionsLayout.addView(chip)
         }
