@@ -54,6 +54,10 @@ class AssistantBottomSheet : BottomSheetDialogFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        // 清空回调引用，防止内存泄漏
+        onQuickTranslateClick = null
+        onVoiceTranslateClick = null
+        onChatAssistantClick = null
         _binding = null
     }
 

@@ -54,7 +54,6 @@ class HomeFragment : Fragment() {
                 navigateToFragment(VoiceFragment())
             },
             onChatAssistant = {
-                // TODO: 打开聊天助手页面（下一步实现）
                 navigateToFragment(ChatAssistantFragment())
             }
         )
