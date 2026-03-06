@@ -48,13 +48,17 @@ class CameraFragment : Fragment() {
         ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         uri?.let {
+            var bitmap: Bitmap? = null
             try {
-                val bitmap = uriToBitmap(it)
+                bitmap = uriToBitmap(it)
                 // 保存到临时文件，然后进入裁剪页面
                 val tempFile = saveBitmapToTempFile(bitmap)
                 startCropActivity(tempFile.absolutePath)
             } catch (e: Exception) {
                 showError("读取图片失败: ${e.message}")
+            } finally {
+                // ⚠️ 关键修复：释放 bitmap 内存
+                bitmap?.recycle()
             }
         }
     }
@@ -66,8 +70,13 @@ class CameraFragment : Fragment() {
         if (result.resultCode == Activity.RESULT_OK) {
             val croppedImagePath = result.data?.getStringExtra(CropImageActivity.EXTRA_CROPPED_IMAGE_PATH)
             if (croppedImagePath != null) {
-                val bitmap = BitmapFactory.decodeFile(croppedImagePath)
-                viewModel.recognizeAndTranslate(bitmap)
+                // ⚠️ 关键修复：采样加载裁剪后的图片
+                val bitmap = decodeSampledBitmapFromFile(croppedImagePath, 2048, 2048)
+                if (bitmap != null) {
+                    viewModel.recognizeAndTranslate(bitmap)
+                } else {
+                    showError("无法加载裁剪后的图片")
+                }
             }
         }
     }
@@ -147,9 +156,16 @@ class CameraFragment : Fragment() {
                     val bitmap = imageProxyToBitmap(image)
                     image.close()
                     requireActivity().runOnUiThread {
-                        // 保存到临时文件，然后进入裁剪页面
-                        val tempFile = saveBitmapToTempFile(bitmap)
-                        startCropActivity(tempFile.absolutePath)
+                        try {
+                            // 保存到临时文件，然后进入裁剪页面
+                            val tempFile = saveBitmapToTempFile(bitmap)
+                            startCropActivity(tempFile.absolutePath)
+                        } catch (e: Exception) {
+                            showError("保存图片失败: ${e.message}")
+                        } finally {
+                            // ⚠️ 关键修复：释放 bitmap 内存
+                            bitmap.recycle()
+                        }
                     }
                 }
 
@@ -166,10 +182,30 @@ class CameraFragment : Fragment() {
         val buffer = image.planes[0].buffer
         val bytes = ByteArray(buffer.remaining())
         buffer.get(bytes)
-        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+
+        // ⚠️ 关键修复：采样解码，避免 OOM
+        val options = BitmapFactory.Options().apply {
+            inJustDecodeBounds = true
+        }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+
+        // 计算采样率
+        options.inSampleSize = calculateInSampleSize(options, 2048, 2048)
+        options.inJustDecodeBounds = false
+
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+
         // 修正旋转
-        val matrix = Matrix().apply { postRotate(image.imageInfo.rotationDegrees.toFloat()) }
-        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        val rotation = image.imageInfo.rotationDegrees.toFloat()
+        if (rotation != 0f) {
+            val matrix = Matrix().apply { postRotate(rotation) }
+            val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+            if (rotated != bitmap) {
+                bitmap.recycle() // 释放原 bitmap
+            }
+            return rotated
+        }
+        return bitmap
     }
 
     // ─── 从相册选择 ───
@@ -187,13 +223,37 @@ class CameraFragment : Fragment() {
                 requireContext().contentResolver,
                 uri
             )
-            android.graphics.ImageDecoder.decodeBitmap(source)
+            // ⚠️ 关键修复：限制图片大小
+            android.graphics.ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+                val targetSize = 2048
+                if (info.size.width > targetSize || info.size.height > targetSize) {
+                    val scale = minOf(
+                        targetSize.toFloat() / info.size.width,
+                        targetSize.toFloat() / info.size.height
+                    )
+                    decoder.setTargetSize(
+                        (info.size.width * scale).toInt(),
+                        (info.size.height * scale).toInt()
+                    )
+                }
+            }
         } else {
-            @Suppress("DEPRECATION")
-            android.provider.MediaStore.Images.Media.getBitmap(
-                requireContext().contentResolver,
-                uri
-            )
+            // Android 8.0 以下：使用采样加载
+            val inputStream = requireContext().contentResolver.openInputStream(uri)
+            inputStream?.use { stream ->
+                val options = BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true
+                }
+                BitmapFactory.decodeStream(stream, null, options)
+
+                stream.close()
+
+                val newStream = requireContext().contentResolver.openInputStream(uri)
+                options.inSampleSize = calculateInSampleSize(options, 2048, 2048)
+                options.inJustDecodeBounds = false
+
+                BitmapFactory.decodeStream(newStream, null, options) ?: throw Exception("无法加载图片")
+            } ?: throw Exception("无法打开图片")
         }
     }
 
@@ -292,5 +352,48 @@ class CameraFragment : Fragment() {
         ttsHelper?.shutdown()
         ttsHelper = null
         _binding = null
+    }
+
+    /**
+     * 采样加载图片文件（与 CropImageActivity 相同的实现）
+     */
+    private fun decodeSampledBitmapFromFile(
+        path: String,
+        reqWidth: Int,
+        reqHeight: Int
+    ): Bitmap? {
+        val options = BitmapFactory.Options().apply {
+            inJustDecodeBounds = true
+        }
+        BitmapFactory.decodeFile(path, options)
+
+        options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight)
+        options.inJustDecodeBounds = false
+
+        return BitmapFactory.decodeFile(path, options)
+    }
+
+    /**
+     * 计算图片采样率（与 CropImageActivity 相同的实现）
+     */
+    private fun calculateInSampleSize(
+        options: BitmapFactory.Options,
+        reqWidth: Int,
+        reqHeight: Int
+    ): Int {
+        val height = options.outHeight
+        val width = options.outWidth
+        var inSampleSize = 1
+
+        if (height > reqHeight || width > reqWidth) {
+            val halfHeight = height / 2
+            val halfWidth = width / 2
+
+            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+                inSampleSize *= 2
+            }
+        }
+
+        return inSampleSize
     }
 }
