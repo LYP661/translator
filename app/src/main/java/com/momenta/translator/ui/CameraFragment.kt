@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.momenta.translator.databinding.FragmentCameraBinding
+import com.momenta.translator.utils.TTSHelper
 import com.momenta.translator.viewmodel.TranslateState
 import com.momenta.translator.viewmodel.TranslateViewModel
 import java.io.File
@@ -33,6 +34,7 @@ class CameraFragment : Fragment() {
     private val viewModel: TranslateViewModel by activityViewModels()
     private lateinit var cameraExecutor: ExecutorService
     private var imageCapture: ImageCapture? = null
+    private var ttsHelper: TTSHelper? = null
 
     // ─── 权限请求 ───
     private val permissionLauncher = registerForActivityResult(
@@ -80,6 +82,7 @@ class CameraFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         cameraExecutor = Executors.newSingleThreadExecutor()
+        ttsHelper = TTSHelper(requireContext())
 
         if (hasCameraPermission()) startCamera() else requestPermission()
 
@@ -88,6 +91,11 @@ class CameraFragment : Fragment() {
         binding.btnRetry.setOnClickListener {
             viewModel.reset()
             showCameraView()
+        }
+        binding.btnSpeak.setOnClickListener {
+            val translated = binding.tvTranslated.text.toString()
+                .replace("\n\n💡.*".toRegex(), "") // 移除方法提示
+            ttsHelper?.speak(translated)
         }
         binding.btnShare.setOnClickListener {
             shareTranslation(
@@ -281,6 +289,8 @@ class CameraFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         cameraExecutor.shutdown()
+        ttsHelper?.shutdown()
+        ttsHelper = null
         _binding = null
     }
 }

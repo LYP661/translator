@@ -23,8 +23,9 @@ class MainActivity : AppCompatActivity() {
 
         binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.nav_home    -> { switchFragment(HomeFragment()); true }
-                R.id.nav_history -> { switchFragment(HistoryFragment()); true }
+                R.id.nav_home     -> { switchFragment(HomeFragment()); true }
+                R.id.nav_history  -> { switchFragment(HistoryFragment()); true }
+                R.id.nav_settings -> { switchFragment(SettingsFragment()); true }
                 else -> false
             }
         }

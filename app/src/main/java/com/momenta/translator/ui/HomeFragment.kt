@@ -38,6 +38,27 @@ class HomeFragment : Fragment() {
         binding.cardVoice.setOnClickListener {
             navigateToFragment(VoiceFragment())
         }
+
+        // 悬浮助手按钮
+        binding.fabAssistant.setOnClickListener {
+            showAssistantBottomSheet()
+        }
+    }
+
+    private fun showAssistantBottomSheet() {
+        val bottomSheet = AssistantBottomSheet.newInstance(
+            onQuickTranslate = {
+                navigateToFragment(CameraFragment())
+            },
+            onVoiceTranslate = {
+                navigateToFragment(VoiceFragment())
+            },
+            onChatAssistant = {
+                // TODO: 打开聊天助手页面（下一步实现）
+                navigateToFragment(ChatAssistantFragment())
+            }
+        )
+        bottomSheet.show(childFragmentManager, "AssistantBottomSheet")
     }
 
     private fun navigateToFragment(fragment: Fragment) {

@@ -9,6 +9,7 @@ import android.view.inputmethod.InputMethodManager
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.momenta.translator.databinding.FragmentTextInputBinding
+import com.momenta.translator.utils.TTSHelper
 import com.momenta.translator.viewmodel.TranslateState
 import com.momenta.translator.viewmodel.TranslateViewModel
 
@@ -17,6 +18,7 @@ class TextInputFragment : Fragment() {
     private var _binding: FragmentTextInputBinding? = null
     private val binding get() = _binding!!
     private val viewModel: TranslateViewModel by activityViewModels()
+    private var ttsHelper: TTSHelper? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -27,6 +29,7 @@ class TextInputFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        ttsHelper = TTSHelper(requireContext())
 
         binding.btnTranslate.setOnClickListener {
             hideKeyboard()
@@ -36,6 +39,13 @@ class TextInputFragment : Fragment() {
         binding.btnClear.setOnClickListener {
             binding.etInput.setText("")
             viewModel.reset()
+        }
+
+        // 朗读翻译结果
+        binding.btnSpeak.setOnClickListener {
+            val translated = binding.tvTranslated.text.toString()
+                .replace("\n\n💡.*".toRegex(), "")
+            ttsHelper?.speak(translated)
         }
 
         // 复制翻译结果到剪贴板
@@ -128,6 +138,8 @@ class TextInputFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        ttsHelper?.shutdown()
+        ttsHelper = null
         _binding = null
     }
 }
