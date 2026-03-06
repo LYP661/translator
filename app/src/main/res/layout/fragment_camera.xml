@@ -140,13 +140,30 @@
                     android:layout_marginBottom="24dp"
                     android:padding="10dp" />
 
-                <!-- 重新拍照按钮 -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_retry"
+                <!-- 操作按钮 -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="重新拍照"
-                    android:visibility="gone" />
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_share"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="分享"
+                        android:layout_marginEnd="8dp"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_retry"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="重拍"
+                        android:visibility="gone" />
+
+                </LinearLayout>
 
             </LinearLayout>
         </ScrollView>

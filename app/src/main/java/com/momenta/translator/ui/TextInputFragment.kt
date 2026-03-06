@@ -50,6 +50,14 @@ class TextInputFragment : Fragment() {
             }
         }
 
+        // 分享翻译结果
+        binding.btnShare.setOnClickListener {
+            shareTranslation(
+                binding.tvOriginal.text.toString(),
+                binding.tvTranslated.text.toString()
+            )
+        }
+
         viewModel.state.observe(viewLifecycleOwner) { state ->
             when (state) {
                 is TranslateState.Idle -> {
@@ -93,6 +101,29 @@ class TextInputFragment : Fragment() {
     private fun hideKeyboard() {
         val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(binding.etInput.windowToken, 0)
+    }
+
+    // ─── 分享翻译 ───
+    private fun shareTranslation(original: String, translated: String) {
+        val cleanTranslated = translated.replace("\n\n💡.*".toRegex(), "")
+        val shareText = """
+            📖 原文：
+            $original
+
+            ❄️ 小冷的翻译：
+            $cleanTranslated
+
+            --- 来自小冷翻译 ---
+        """.trimIndent()
+
+        val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(android.content.Intent.EXTRA_TEXT, shareText)
+        }
+
+        startActivity(
+            android.content.Intent.createChooser(shareIntent, "分享翻译结果")
+        )
     }
 
     override fun onDestroyView() {
