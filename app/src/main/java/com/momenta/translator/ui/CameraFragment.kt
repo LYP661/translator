@@ -40,6 +40,9 @@ class CameraFragment : Fragment() {
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
+        // ⚠️ 检查 Fragment 是否仍然存活
+        if (_binding == null) return@registerForActivityResult
+
         if (granted) {
             startCamera()
         } else {
@@ -167,15 +170,22 @@ class CameraFragment : Fragment() {
 
     // ─── 拍照 ───
     private fun takePhoto() {
+        // 检查相机是否就绪
         val capture = imageCapture ?: run {
             showError("相机未就绪，请稍后再试")
+            return
+        }
+
+        // 检查 Fragment 是否存活
+        val ctx = context
+        if (ctx == null || _binding == null) {
             return
         }
 
         try {
             // ✅ 直接保存到文件，避免 YUV 转 Bitmap 的内存问题
             val photoFile = File(
-                requireContext().cacheDir,
+                ctx.cacheDir,
                 "photo_${System.currentTimeMillis()}.jpg"
             )
 
@@ -183,7 +193,7 @@ class CameraFragment : Fragment() {
 
             capture.takePicture(
                 outputOptions,
-                ContextCompat.getMainExecutor(requireContext()),
+                ContextCompat.getMainExecutor(ctx),
                 object : ImageCapture.OnImageSavedCallback {
                     override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                         // ⚠️ 检查 Fragment 是否仍然存活
@@ -201,7 +211,9 @@ class CameraFragment : Fragment() {
                 }
             )
         } catch (e: Exception) {
-            showError("拍照失败: ${e.message}")
+            if (_binding != null) {
+                showError("拍照失败: ${e.message}")
+            }
         }
     }
 
