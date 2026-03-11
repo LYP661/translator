@@ -5,6 +5,8 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.momenta.translator.databinding.ActivityCropImageBinding
 import java.io.File
@@ -16,41 +18,77 @@ class CropImageActivity : AppCompatActivity() {
     private var originalBitmap: Bitmap? = null
 
     companion object {
+        private const val TAG = "CropImageActivity"
         const val EXTRA_IMAGE_PATH = "image_path"
         const val EXTRA_CROPPED_IMAGE_PATH = "cropped_image_path"
         const val REQUEST_CODE = 1001
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        binding = ActivityCropImageBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        Log.d(TAG, "✂️ onCreate 开始")
+        Toast.makeText(this, "✂️ 打开裁剪页面...", Toast.LENGTH_SHORT).show()
 
-        // 加载原始图片
-        val imagePath = intent.getStringExtra(EXTRA_IMAGE_PATH)
-        if (imagePath == null) {
+        try {
+            super.onCreate(savedInstanceState)
+            Log.d(TAG, "✅ super.onCreate 完成")
+
+            binding = ActivityCropImageBinding.inflate(layoutInflater)
+            Log.d(TAG, "✅ binding 创建完成")
+
+            setContentView(binding.root)
+            Log.d(TAG, "✅ setContentView 完成")
+            Toast.makeText(this, "✅ 界面加载完成", Toast.LENGTH_SHORT).show()
+
+            // 加载原始图片
+            val imagePath = intent.getStringExtra(EXTRA_IMAGE_PATH)
+            Log.d(TAG, "📁 图片路径: $imagePath")
+
+            if (imagePath == null) {
+                Log.e(TAG, "❌ 图片路径为空")
+                Toast.makeText(this, "❌ 图片路径错误", Toast.LENGTH_SHORT).show()
+                finish()
+                return
+            }
+
+            val file = File(imagePath)
+            Log.d(TAG, "📁 文件存在: ${file.exists()}, 大小: ${file.length()} bytes")
+            Toast.makeText(this, "📁 正在加载图片...", Toast.LENGTH_SHORT).show()
+
+            // 使用采样压缩加载图片，避免内存溢出
+            originalBitmap = decodeSampledBitmapFromFile(imagePath, 2048, 2048)
+            if (originalBitmap == null) {
+                Log.e(TAG, "❌ 图片加载失败")
+                Toast.makeText(this, "❌ 图片加载失败", Toast.LENGTH_LONG).show()
+                finish()
+                return
+            }
+
+            Log.d(TAG, "✅ 图片加载成功: ${originalBitmap!!.width}x${originalBitmap!!.height}")
+            Toast.makeText(this, "✅ 图片加载成功", Toast.LENGTH_SHORT).show()
+
+            binding.ivPhoto.setImageBitmap(originalBitmap)
+            Log.d(TAG, "✅ 图片设置到 ImageView")
+
+            // 取消按钮
+            binding.btnCancel.setOnClickListener {
+                Log.d(TAG, "❌ 用户点击取消")
+                setResult(Activity.RESULT_CANCELED)
+                finish()
+            }
+
+            // 确认按钮
+            binding.btnConfirm.setOnClickListener {
+                Log.d(TAG, "✅ 用户点击确认")
+                cropAndReturn()
+            }
+
+            Log.d(TAG, "✅ CropImageActivity 初始化完成")
+            Toast.makeText(this, "✅ 准备就绪，可以裁剪", Toast.LENGTH_SHORT).show()
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ onCreate 异常: ${e.message}", e)
+            Toast.makeText(this, "❌ 裁剪页面加载失败: ${e.message}", Toast.LENGTH_LONG).show()
             finish()
-            return
-        }
-
-        // 使用采样压缩加载图片，避免内存溢出
-        originalBitmap = decodeSampledBitmapFromFile(imagePath, 2048, 2048)
-        if (originalBitmap == null) {
-            finish()
-            return
-        }
-
-        binding.ivPhoto.setImageBitmap(originalBitmap)
-
-        // 取消按钮
-        binding.btnCancel.setOnClickListener {
-            setResult(Activity.RESULT_CANCELED)
-            finish()
-        }
-
-        // 确认按钮
-        binding.btnConfirm.setOnClickListener {
-            cropAndReturn()
         }
     }
 
@@ -110,18 +148,34 @@ class CropImageActivity : AppCompatActivity() {
         reqWidth: Int,
         reqHeight: Int
     ): Bitmap? {
-        // 第一次解析，只获取图片尺寸，不加载到内存
-        val options = BitmapFactory.Options().apply {
-            inJustDecodeBounds = true
+        return try {
+            Log.d(TAG, "📊 开始解析图片尺寸...")
+            // 第一次解析，只获取图片尺寸，不加载到内存
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            BitmapFactory.decodeFile(path, options)
+            Log.d(TAG, "📊 原始尺寸: ${options.outWidth}x${options.outHeight}")
+
+            // 计算合适的采样率
+            options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight)
+            Log.d(TAG, "📊 采样率: ${options.inSampleSize}")
+
+            // 第二次解析，使用采样率加载压缩后的图片
+            options.inJustDecodeBounds = false
+            Log.d(TAG, "📊 开始加载图片到内存...")
+            val bitmap = BitmapFactory.decodeFile(path, options)
+            if (bitmap != null) {
+                Log.d(TAG, "✅ 图片加载成功: ${bitmap.width}x${bitmap.height}")
+            } else {
+                Log.e(TAG, "❌ BitmapFactory.decodeFile 返回 null")
+            }
+            bitmap
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ decodeSampledBitmapFromFile 异常: ${e.message}", e)
+            Toast.makeText(this, "❌ 图片解析失败: ${e.message}", Toast.LENGTH_LONG).show()
+            null
         }
-        BitmapFactory.decodeFile(path, options)
-
-        // 计算合适的采样率
-        options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight)
-
-        // 第二次解析，使用采样率加载压缩后的图片
-        options.inJustDecodeBounds = false
-        return BitmapFactory.decodeFile(path, options)
     }
 
     /**
