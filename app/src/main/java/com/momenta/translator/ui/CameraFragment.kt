@@ -8,9 +8,11 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -35,6 +37,10 @@ class CameraFragment : Fragment() {
     private lateinit var cameraExecutor: ExecutorService
     private var imageCapture: ImageCapture? = null
     private var ttsHelper: TTSHelper? = null
+
+    companion object {
+        private const val TAG = "CameraFragment"
+    }
 
     // ─── 权限请求 ───
     private val permissionLauncher = registerForActivityResult(
@@ -136,19 +142,30 @@ class CameraFragment : Fragment() {
 
     // ─── CameraX 启动 ───
     private fun startCamera() {
+        Log.d(TAG, "🎬 startCamera() 开始")
+        Toast.makeText(context, "🎬 启动相机...", Toast.LENGTH_SHORT).show()
+
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
         cameraProviderFuture.addListener({
             // ⚠️ 检查 Fragment 是否仍然存活
-            if (_binding == null) return@addListener
+            if (_binding == null) {
+                Log.e(TAG, "❌ startCamera: _binding 为 null")
+                return@addListener
+            }
 
             try {
                 val provider = cameraProviderFuture.get()
+                Log.d(TAG, "✅ 获取到 CameraProvider")
+
                 val preview = Preview.Builder().build().also {
                     it.setSurfaceProvider(binding.previewView.surfaceProvider)
                 }
+                Log.d(TAG, "✅ Preview 创建成功")
+
                 imageCapture = ImageCapture.Builder()
                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                     .build()
+                Log.d(TAG, "✅ ImageCapture 创建成功")
 
                 provider.unbindAll()
                 provider.bindToLifecycle(
@@ -157,7 +174,12 @@ class CameraFragment : Fragment() {
                     preview,
                     imageCapture
                 )
+                Log.d(TAG, "✅ 相机绑定成功")
+                Toast.makeText(context, "✅ 相机就绪", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
+                Log.e(TAG, "❌ 相机启动失败: ${e.message}", e)
+                Toast.makeText(context, "❌ 相机启动失败: ${e.message}", Toast.LENGTH_LONG).show()
+
                 // 相机初始化失败时显示错误
                 if (_binding != null) {
                     showError("相机启动失败: ${e.message}")
@@ -170,17 +192,26 @@ class CameraFragment : Fragment() {
 
     // ─── 拍照 ───
     private fun takePhoto() {
+        Log.d(TAG, "📸 takePhoto() 开始")
+        Toast.makeText(context, "📸 开始拍照...", Toast.LENGTH_SHORT).show()
+
         // 检查相机是否就绪
         val capture = imageCapture ?: run {
+            Log.e(TAG, "❌ imageCapture 为 null")
+            Toast.makeText(context, "❌ 相机未就绪", Toast.LENGTH_SHORT).show()
             showError("相机未就绪，请稍后再试")
             return
         }
+        Log.d(TAG, "✅ imageCapture 已就绪")
 
         // 检查 Fragment 是否存活
         val ctx = context
         if (ctx == null || _binding == null) {
+            Log.e(TAG, "❌ context=$ctx, _binding=$_binding")
+            Toast.makeText(context, "❌ Fragment 状态异常", Toast.LENGTH_SHORT).show()
             return
         }
+        Log.d(TAG, "✅ Fragment 状态正常")
 
         try {
             // ✅ 直接保存到文件，避免 YUV 转 Bitmap 的内存问题
@@ -188,21 +219,33 @@ class CameraFragment : Fragment() {
                 ctx.cacheDir,
                 "photo_${System.currentTimeMillis()}.jpg"
             )
+            Log.d(TAG, "📁 文件路径: ${photoFile.absolutePath}")
+            Toast.makeText(ctx, "📁 准备保存照片...", Toast.LENGTH_SHORT).show()
 
             val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
 
+            Log.d(TAG, "📷 调用 takePicture...")
             capture.takePicture(
                 outputOptions,
                 ContextCompat.getMainExecutor(ctx),
                 object : ImageCapture.OnImageSavedCallback {
                     override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                        Log.d(TAG, "✅ 照片保存成功: ${photoFile.absolutePath}")
+                        Toast.makeText(context, "✅ 照片保存成功！", Toast.LENGTH_SHORT).show()
+
                         // ⚠️ 检查 Fragment 是否仍然存活
                         if (_binding != null) {
+                            Log.d(TAG, "🔄 启动裁剪页面...")
                             startCropActivity(photoFile.absolutePath)
+                        } else {
+                            Log.e(TAG, "❌ Fragment 已销毁，无法启动裁剪")
                         }
                     }
 
                     override fun onError(exception: ImageCaptureException) {
+                        Log.e(TAG, "❌ 拍照失败: ${exception.message}", exception)
+                        Toast.makeText(context, "❌ 拍照失败: ${exception.message}", Toast.LENGTH_LONG).show()
+
                         // ⚠️ 检查 Fragment 是否仍然存活
                         if (_binding != null) {
                             showError("拍照失败: ${exception.message}")
@@ -211,6 +254,8 @@ class CameraFragment : Fragment() {
                 }
             )
         } catch (e: Exception) {
+            Log.e(TAG, "❌ takePhoto 异常: ${e.message}", e)
+            Toast.makeText(ctx, "❌ 拍照异常: ${e.message}", Toast.LENGTH_LONG).show()
             if (_binding != null) {
                 showError("拍照失败: ${e.message}")
             }
