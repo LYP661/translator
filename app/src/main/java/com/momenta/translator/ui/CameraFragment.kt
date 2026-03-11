@@ -40,7 +40,14 @@ class CameraFragment : Fragment() {
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) startCamera() else showError("需要相机权限才能使用此功能")
+        if (granted) {
+            startCamera()
+        } else {
+            showError("需要相机权限才能使用此功能")
+            // 禁用拍照按钮，只允许从相册选择
+            binding.btnCapture.isEnabled = false
+            binding.btnGallery.isEnabled = true
+        }
     }
 
     // ─── 相册图片选择 ───
@@ -131,55 +138,71 @@ class CameraFragment : Fragment() {
             // ⚠️ 检查 Fragment 是否仍然存活
             if (_binding == null) return@addListener
 
-            val provider = cameraProviderFuture.get()
-            val preview = Preview.Builder().build().also {
-                it.setSurfaceProvider(binding.previewView.surfaceProvider)
-            }
-            imageCapture = ImageCapture.Builder()
-                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                .build()
+            try {
+                val provider = cameraProviderFuture.get()
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(binding.previewView.surfaceProvider)
+                }
+                imageCapture = ImageCapture.Builder()
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                    .build()
 
-            provider.unbindAll()
-            provider.bindToLifecycle(
-                viewLifecycleOwner,
-                CameraSelector.DEFAULT_BACK_CAMERA,
-                preview,
-                imageCapture
-            )
+                provider.unbindAll()
+                provider.bindToLifecycle(
+                    viewLifecycleOwner,
+                    CameraSelector.DEFAULT_BACK_CAMERA,
+                    preview,
+                    imageCapture
+                )
+            } catch (e: Exception) {
+                // 相机初始化失败时显示错误
+                if (_binding != null) {
+                    showError("相机启动失败: ${e.message}")
+                    binding.btnCapture.isEnabled = false
+                    binding.btnGallery.isEnabled = true
+                }
+            }
         }, ContextCompat.getMainExecutor(requireContext()))
     }
 
     // ─── 拍照 ───
     private fun takePhoto() {
-        val capture = imageCapture ?: return
+        val capture = imageCapture ?: run {
+            showError("相机未就绪，请稍后再试")
+            return
+        }
 
-        // ✅ 直接保存到文件，避免 YUV 转 Bitmap 的内存问题
-        val photoFile = File(
-            requireContext().cacheDir,
-            "photo_${System.currentTimeMillis()}.jpg"
-        )
+        try {
+            // ✅ 直接保存到文件，避免 YUV 转 Bitmap 的内存问题
+            val photoFile = File(
+                requireContext().cacheDir,
+                "photo_${System.currentTimeMillis()}.jpg"
+            )
 
-        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+            val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
 
-        capture.takePicture(
-            outputOptions,
-            ContextCompat.getMainExecutor(requireContext()),
-            object : ImageCapture.OnImageSavedCallback {
-                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    // ⚠️ 检查 Fragment 是否仍然存活
-                    if (_binding != null) {
-                        startCropActivity(photoFile.absolutePath)
+            capture.takePicture(
+                outputOptions,
+                ContextCompat.getMainExecutor(requireContext()),
+                object : ImageCapture.OnImageSavedCallback {
+                    override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                        // ⚠️ 检查 Fragment 是否仍然存活
+                        if (_binding != null) {
+                            startCropActivity(photoFile.absolutePath)
+                        }
+                    }
+
+                    override fun onError(exception: ImageCaptureException) {
+                        // ⚠️ 检查 Fragment 是否仍然存活
+                        if (_binding != null) {
+                            showError("拍照失败: ${exception.message}")
+                        }
                     }
                 }
-
-                override fun onError(exception: ImageCaptureException) {
-                    // ⚠️ 检查 Fragment 是否仍然存活
-                    if (_binding != null) {
-                        showError("拍照失败: ${exception.message}")
-                    }
-                }
-            }
-        )
+            )
+        } catch (e: Exception) {
+            showError("拍照失败: ${e.message}")
+        }
     }
 
     // ─── 从相册选择 ───
